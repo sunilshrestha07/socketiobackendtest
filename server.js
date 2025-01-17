@@ -25,38 +25,46 @@ io.on('connection', (socket) => {
 
   if (userId) {
     connectedUsers[userId] = socket.id; // Map user ID to socket ID
-    console.log(`User ${userId} connected with socket ID: ${socket.id}`);
   }
-
-  // Check if the connection is from a driver
   if (driverId) {
     connectedDrives[driverId] = socket.id; // Map driver ID to socket ID
-    console.log(`Driver ${driverId} connected with socket ID: ${socket.id}`);
   }
+
   // console.log('User Connected', socket.id);
-  console.log('conntected usrs', connectedUsers);
-  console.log('conntected drives', connectedDrives);
+  console.log('usrs', connectedUsers);
+  console.log('drives', connectedDrives);
 
   //handel finddriveer event
-  socket.on('findDriver', ({userId}) => {
-    console.log(`userwith id ${userId} is searcnig for drives`);
-    io.emit('broadCastDrives', {userId});
+  socket.on('findDriver', (formdata) => {
+    // console.log(`user with id ${data.formdata.name} is searching for drivers`);
+    io.emit('broadCastDrives', {formdata});
   });
 
   //handel driver request event
-  socket.on('driverRequest', ({driverId, user}) => {
-    console.log(`driver with id ${driverId} is requesting user with id ${user}`);
-    // io.emit('driverIsRequesting', {driverId});
-    const recipientSocketId = connectedUsers[user];
+  socket.on('requestRideToUser', ({driverData, userId}) => {
+    const recipientSocketId = connectedUsers[userId];
 
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('driverIsRequesting', {
-        driverId: driverId,
-      });
-    } else {
+    if(recipientSocketId){
+      io.to(recipientSocketId).emit('driverResponse', {driverData});
+    }else{
       console.log('user not found');
     }
+
   });
+
+  //handel ride accept triggered by user
+  socket.on('AcceptRequest',({formdata,driverId})=>{
+    const selectedDriverId = connectedDrives[driverId];
+    if(selectedDriverId){
+      io.to(selectedDriverId).emit('rideAccepted', {formdata});
+      socket.broadcast.emit('terminateFindDriverRequest',{formdata});
+    }
+    Object.entries(connectedDrives).forEach(([driverId]) => {
+      if(driverId!==selectedDriverId){
+        io.to(driverId).emit('terminateFindDriverRequest',{formdata});
+      }
+    })
+  })
 
   //handel disconnect
   socket.on('disconnect', () => {
@@ -72,7 +80,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`server is running on port ${PORT}`);
 });
