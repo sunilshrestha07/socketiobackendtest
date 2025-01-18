@@ -66,6 +66,15 @@ io.on('connection', (socket) => {
     })
   })
 
+  //handel cancel ride triggered by user
+  socket.on('CancelRide',({driverId,formdata})=>{
+    console.log( `driver id ${driverId}'ride has been calcled by user with id ${formdata.userId} has canceled the ride`);
+    const selectedDriverId = connectedDrives[driverId];
+    if(selectedDriverId){
+      io.to(selectedDriverId).emit('rideHasBeenCancled', {formdata});
+    }
+  })
+
   //handel disconnect
   socket.on('disconnect', () => {
     // Remove the socket ID from both collections
