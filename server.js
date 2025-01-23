@@ -55,6 +55,7 @@ io.on('connection', (socket) => {
   //handel ride accept triggered by user
   socket.on('AcceptRequest',({formdata,driverId})=>{
     const selectedDriverId = connectedDrives[driverId];
+
     if(selectedDriverId){
       io.to(selectedDriverId).emit('rideAccepted', {formdata});
       socket.broadcast.emit('terminateFindDriverRequest',{formdata});
@@ -64,6 +65,26 @@ io.on('connection', (socket) => {
         io.to(driverId).emit('terminateFindDriverRequest',{formdata});
       }
     })
+  })
+
+  //when driver says start then start
+  socket.on('rideStarted',({driverData,userId})=>{
+    // console.log(`driverdata and userid`,driverData,userId);
+    const recipientSocketId = connectedUsers[userId];
+
+    if(recipientSocketId){
+      io.to(recipientSocketId).emit('rideStarted', {driverData});
+    }
+  })
+
+  //if the rider says ride has been completed
+  socket.on('rideCompleted',({driverData,userId})=>{
+    // console.log(`driverdata and userid`,driverData,userId);
+    const recipientSocketId = connectedUsers[userId];
+
+    if(recipientSocketId){
+      io.to(recipientSocketId).emit('rideCompleted', {driverData});
+    }
   })
 
   //handel cancel ride triggered by user
